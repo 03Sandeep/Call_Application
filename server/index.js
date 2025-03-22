@@ -1,20 +1,37 @@
 const { Server } = require("socket.io");
+const express = require("express");
+const http = require("http");
+const cors = require("cors");
 
-const io = new Server(8000, {
-  cors: true,
+const app = express();
+const server = http.createServer(app);
+
+const PORT = process.env.PORT || 8000;
+
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Change this to your frontend domain in production
+    methods: ["GET", "POST"],
+  },
 });
 
+// Middleware
+app.use(cors());
+
+// Socket.io logic
 const emailToSocketIdMap = new Map();
 const socketidToEmailMap = new Map();
 
 io.on("connection", (socket) => {
-  console.log(`Socket Connected`, socket.id);
+  console.log(`Socket Connected: ${socket.id}`);
+
   socket.on("room:join", (data) => {
     const { email, room } = data;
     emailToSocketIdMap.set(email, socket.id);
     socketidToEmailMap.set(socket.id, email);
-    io.to(room).emit("user:joined", { email, id: socket.id });
     socket.join(room);
+
+    io.to(room).emit("user:joined", { email, id: socket.id });
     io.to(socket.id).emit("room:join", data);
   });
 
@@ -35,4 +52,16 @@ io.on("connection", (socket) => {
     console.log("peer:nego:done", ans);
     io.to(to).emit("peer:nego:final", { from: socket.id, ans });
   });
+
+  socket.on("disconnect", () => {
+    console.log(`Socket Disconnected: ${socket.id}`);
+    const email = socketidToEmailMap.get(socket.id);
+    emailToSocketIdMap.delete(email);
+    socketidToEmailMap.delete(socket.id);
+  });
+});
+
+// Start the server
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
