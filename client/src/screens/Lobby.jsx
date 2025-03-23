@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // Add useLocation
 import { useSocket } from "../context/SocketProvider";
 import { TextField, Button, Container, Typography, Box } from "@mui/material";
 
@@ -9,6 +9,25 @@ const LobbyScreen = () => {
 
   const socket = useSocket();
   const navigate = useNavigate();
+  const location = useLocation(); // Add this to access URL parameters
+
+  // Add this useEffect to read URL parameters when component mounts
+  useEffect(() => {
+    // Parse URL parameters
+    const params = new URLSearchParams(location.search);
+    const emailParam = params.get("email");
+    const userIdParam = params.get("userId");
+
+    // Set email if provided in URL
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+
+    // Set room if userId is provided (optional)
+    if (userIdParam) {
+      setRoom(userIdParam); // or any logic to create room from userId
+    }
+  }, [location]);
 
   const handleSubmitForm = useCallback(
     (e) => {
